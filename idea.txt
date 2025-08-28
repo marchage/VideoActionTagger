@@ -1,0 +1,70 @@
+say I have a harddisk of sports video's, and I want to create a local (macOS) AI app that recognizes sequences of events and classifies that time frame(s) as such, or report back "this movie contains categories x y and z, x at 5 minutes to 7 minutes, y at minutes 58 to 65, and z at minute 10 to 15 and 70 to 72", how would I do that? what am i looking to train, an object detector?! No right?! so what then? (say I want to use CreateML, what do I choose?)
+---
+I’ll map your goal (finding and timestamping sports “events” in long videos on macOS) to the right model type and a practical Create ML workflow.
+
+## Checklist
+- Clarify what to train: object detector vs something else
+- Recommend the right Create ML template
+- Outline training data prep from long videos
+- Describe inference strategy for time-localized results
+- Note post-processing to merge windows into clean segments
+- Mention edge cases and possible multimodal improvements
+
+## What you actually need
+- This is not object detection (that finds spatial boxes in single frames).
+- You want temporal action recognition + localization: often called “temporal action detection/segmentation.”
+- With Create ML, pick Action Classification (video). It classifies short clips into actions. You’ll localize in time by sliding this classifier over your long video and merging consecutive predictions.
+
+## Create ML choice
+- Use Create ML “Action Classification” (sometimes labeled “Action Classifier”).
+- Don’t use:
+  - Image Classification (frame-level only, no motion)
+  - Object Detection (spatial boxes, not sequences)
+  - Activity Classifier (for Core Motion sensor data, not video)
+
+## Data preparation (from long sports videos)
+- Annotate time ranges per event type (e.g., “goal,” “foul,” “corner,” etc.).
+- Cut balanced, short clips per class (2–5 seconds works well). Include a “background/other” class.
+- Aim for at least 50–200 clips/class to start; more = better. Keep class durations roughly consistent.
+- Augment moderately (flip, slight crop, brightness). Keep temporal integrity; avoid shuffles that break motion.
+
+Suggested folder layout for Create ML:
+- One folder per label, each containing short video clips of that label.
+- A separate folder for “background” non-event clips.
+
+## Train in Create ML
+- Create an Action Classification project.
+- Import your labeled clip folders (train/val split).
+- Start with default settings; iterate:
+  - Watch per-class precision/recall.
+  - Add hard negatives to “background” when you see false positives.
+
+## Inference to get timestamps
+- Run a sliding window over the full movie:
+  - Window length: 2–4s (match training clip length).
+  - Stride: 0.5–1.0s.
+- For each window, get class probabilities.
+- Post-process:
+  - Apply a class-specific threshold (e.g., 0.6–0.8).
+  - Smooth with a moving average or median over 2–3 windows.
+  - Merge consecutive windows of the same label into segments; discard segments shorter than a minimum duration (e.g., 1.5s) to reduce flicker.
+- Output: “Class X: 05:00–07:00,” etc. Also allow multi-label overlaps if needed (run one-vs-rest thresholds per class).
+
+## macOS app wiring (high level)
+- Use AVFoundation to read frames in windows.
+- Run the Core ML model with Vision (VNCoreMLRequest) or directly via Core ML; batch frames for the window as required by the model.
+- For Apple Silicon, enable GPU/ANE (set model configuration to not be CPU-only) for speed.
+- Implement the smoothing/merging logic and a UI to list segments and jump to timestamps.
+
+## Edge cases and tips
+- Overlapping or co-occurring events: allow multi-label outputs (per-class thresholds) instead of forcing single best class.
+- Class imbalance: oversample rare events or collect more examples; keep a robust “background.”
+- Domain variability: include different stadiums, cameras, broadcast graphics, and lighting in training clips.
+- Audio helps: whistles, crowd surges. Optional: train a Create ML Sound Classifier on the audio track and fuse with video scores (late fusion = weighted average).
+- If actions depend on specific players/ball cues, you can add a pose-based signal (Vision body pose) as extra features and train a small classifier on top—but start with the Action Classifier alone.
+
+## If you outgrow Create ML
+- PyTorch models like SlowFast/X3D/ActionFormer give stronger temporal localization; you can convert to Core ML with coremltools for on-device macOS use. Only consider this if Create ML accuracy or latency is insufficient.
+
+## Summary recommendation
+- Use Create ML Action Classification, train on short labeled clips per event (plus background), then run it over long videos with a sliding window and post-process to produce clean time ranges per category.
