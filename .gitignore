@@ -1,0 +1,46 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# Logs
+*.log
+
+# Swift Package Manager
+.build/
+VideoActionTagger/.build/
+.swiftpm/
+VideoActionTagger/.swiftpm/
+Package.pins
+# Note: consider committing Package.resolved for reproducible builds
+
+# Xcode
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcworkspace
+*.xcodeproj
+*.xcscmblueprint
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.moved-aside
+*.xccheckout
+*.xcarchive
+
+# Core ML compiled models (generated from .mlmodel)
+*.mlmodelc/
+
+# App outputs (sidecars and scratch)
+results/
+out/
+VideoActionTagger/results/
+
+# Editors/IDEs (uncomment if you don't want to commit workspace settings)
+# .vscode/
+# .idea/
