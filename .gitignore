@@ -41,6 +41,6 @@ results/
 out/
 VideoActionTagger/results/
 
-# Editors/IDEs (uncomment if you don't want to commit workspace settings)
-# .vscode/
-# .idea/
+# Editors/IDEs
+.vscode/
+.idea/
